@@ -131,8 +131,8 @@ public class LzoTextInputFormat extends TextInputFormat {
       long start = fileSplit.getStart();
       long end = start + fileSplit.getLength();
 
-      long lzoStart = index.alignSliceStartToIndex(start, end);
-      long lzoEnd = index.alignSliceEndToIndex(end, fs.getFileStatus(file).getLen());
+      long lzoStart = index.alignSliceStartToBlock(start, end);
+      long lzoEnd = index.alignSliceEndToBlock(end);
 
       if (lzoStart != LzoIndex.NOT_FOUND  && lzoEnd != LzoIndex.NOT_FOUND) {
         result.add(new FileSplit(file, lzoStart, lzoEnd - lzoStart, fileSplit.getLocations()));

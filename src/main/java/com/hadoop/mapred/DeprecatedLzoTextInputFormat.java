@@ -115,12 +115,12 @@ public class DeprecatedLzoTextInputFormat extends TextInputFormat {
   @Override
   public InputSplit[] getSplits(JobConf conf, int numSplits) throws IOException {
 
-    FileSplit[] splits = (FileSplit[])super.getSplits(conf, numSplits);
+    CompressedFileSplit[] splits = (CompressedFileSplit[])super.getSplits(conf, numSplits);
     // Find new starts/ends of the filesplit that align with the LZO blocks.
 
     List<CompressedFileSplit> result = new ArrayList<CompressedFileSplit>();
 
-    for (FileSplit fileSplit: splits) {
+    for (CompressedFileSplit fileSplit: splits) {
       Path file = fileSplit.getPath();
       FileSystem fs = file.getFileSystem(conf);
 
@@ -182,18 +182,13 @@ public class DeprecatedLzoTextInputFormat extends TextInputFormat {
   @Override
   public RecordReader<LongWritable, Text> getRecordReader(InputSplit split,
       JobConf conf, Reporter reporter) throws IOException {
-<<<<<<< HEAD:src/java/com/hadoop/mapred/DeprecatedLzoTextInputFormat.java
-    reporter.setStatus(split.toString());
-    return new DeprecatedLzoLineRecordReader(conf, (CompressedFileSplit)split);
-=======
-    FileSplit fileSplit = (FileSplit) split;
+    CompressedFileSplit fileSplit = (CompressedFileSplit) split;
     if (LzoInputFormatCommon.isLzoFile(fileSplit.getPath().toString())) {
       reporter.setStatus(split.toString());
-      return new DeprecatedLzoLineRecordReader(conf, (FileSplit)split);
+      return new DeprecatedLzoLineRecordReader(conf, fileSplit);
     } else {
       // delegate non-LZO files to the TextInputFormat base class.
       return super.getRecordReader(split, conf, reporter);
     }
->>>>>>> d0f5a10f99f1b2af4f6610447052c5a67b8b1cc7:src/main/java/com/hadoop/mapred/DeprecatedLzoTextInputFormat.java
   }
 }
