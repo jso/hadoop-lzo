@@ -3,7 +3,6 @@ package com.hadoop.mapreduce;
 import java.io.IOException;
 
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapred.FileAlreadyExistsException;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
@@ -11,9 +10,9 @@ import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class LzoIndexOutputFormat extends OutputFormat<Path, LongWritable> {
+public class LzoIndexOutputFormat extends OutputFormat<Path, TripleLongWritable> {
   @Override
-  public RecordWriter<Path, LongWritable> getRecordWriter(TaskAttemptContext taskAttemptContext)
+  public RecordWriter<Path, TripleLongWritable> getRecordWriter(TaskAttemptContext taskAttemptContext)
       throws IOException, InterruptedException {
     return new LzoIndexRecordWriter(taskAttemptContext);
   }

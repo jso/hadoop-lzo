@@ -212,6 +212,10 @@ class LzoCompressor implements Compressor {
     this(CompressionStrategy.LZO1X_1, 64*1024);
   }
 
+  public synchronized void reinit(org.apache.hadoop.conf.Configuration conf) {
+    throw new RuntimeException("reinit unimplemented");
+  }
+
   public synchronized void setInput(byte[] b, int off, int len) {
     if (b== null) {
       throw new NullPointerException();

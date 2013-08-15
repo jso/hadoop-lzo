@@ -40,10 +40,18 @@ public class DeprecatedLzoLineRecordReader implements RecordReader<LongWritable,
   private final long end;
   private final LineReader in;
   private final FSDataInputStream fileIn;
+  private long uncStart;
+  private long uncLength;
+  private long uncPos;
+  private boolean ignoreFirstLine;
 
-  DeprecatedLzoLineRecordReader(Configuration conf, FileSplit split) throws IOException {
+  DeprecatedLzoLineRecordReader(Configuration conf, CompressedFileSplit split) throws IOException {
     start = split.getStart();
     end = start + split.getLength();
+    uncStart = split.getUncStart();
+    uncLength = split.getUncLength();
+    ignoreFirstLine = split.getIgnoreFirstLine();
+
     final Path file = split.getPath();
 
     FileSystem fs = file.getFileSystem(conf);
@@ -53,6 +61,8 @@ public class DeprecatedLzoLineRecordReader implements RecordReader<LongWritable,
       throw new IOException("No LZO codec found, cannot run.");
     }
 
+    uncPos = uncStart;
+
     // Open the file and seek to the next split.
     fileIn = fs.open(file);
     // Create input stream and read the file header.
@@ -61,7 +71,10 @@ public class DeprecatedLzoLineRecordReader implements RecordReader<LongWritable,
       fileIn.seek(start);
 
       // Read and ignore the first line.
-      in.readLine(new Text());
+      if (ignoreFirstLine) {
+        uncPos += in.readLine(new Text()); // JSO: count the bytes read in the uncompressed stream
+      }
+
       start = fileIn.getPos();
     }
 
@@ -80,9 +93,10 @@ public class DeprecatedLzoLineRecordReader implements RecordReader<LongWritable,
     // Since the LZOP codec reads everything in LZO blocks, we can't stop if pos == end.
     // Instead, wait for the next block to be read in when pos will be > end.
     while (pos <= end) {
-      key.set(pos);
+      key.set(uncPos);
 
       int newSize = in.readLine(value);
+      uncPos += newSize; // advance the uncompressed stream offset
       if (newSize == 0) {
         return false;
       }

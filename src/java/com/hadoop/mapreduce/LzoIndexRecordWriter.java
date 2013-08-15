@@ -8,11 +8,10 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 
-public class LzoIndexRecordWriter extends RecordWriter<Path, LongWritable> {
+public class LzoIndexRecordWriter extends RecordWriter<Path, TripleLongWritable> {
   private static final Log LOG = LogFactory.getLog(LzoIndexRecordWriter.class);
 
   private FSDataOutputStream outputStream;
@@ -28,7 +27,7 @@ public class LzoIndexRecordWriter extends RecordWriter<Path, LongWritable> {
   }
 
   @Override
-  public void write(Path path, LongWritable offset) throws IOException, InterruptedException {
+  public void write(Path path, TripleLongWritable offset) throws IOException, InterruptedException {
     if (outputStream == null) {
       // Set up the output file on the first record.
       LOG.info("Setting up output stream to write index file for " + path);

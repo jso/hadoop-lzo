@@ -26,6 +26,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -54,6 +58,8 @@ import com.hadoop.compression.lzo.LzopCodec;
 
 @SuppressWarnings("deprecation")
 public class DeprecatedLzoTextInputFormat extends FileInputFormat<LongWritable, Text> {
+  protected static final Log LOG = LogFactory.getLog(DeprecatedLzoTextInputFormat.class);
+
   public static final String LZO_INDEX_SUFFIX = ".index";
   private final Map<Path, LzoIndex> indexes = new HashMap<Path, LzoIndex>();
 
@@ -89,43 +95,68 @@ public class DeprecatedLzoTextInputFormat extends FileInputFormat<LongWritable, 
 
   @Override
   public InputSplit[] getSplits(JobConf conf, int numSplits) throws IOException {
+
     FileSplit[] splits = (FileSplit[])super.getSplits(conf, numSplits);
     // Find new starts/ends of the filesplit that align with the LZO blocks.
 
-    List<FileSplit> result = new ArrayList<FileSplit>();
+    List<CompressedFileSplit> result = new ArrayList<CompressedFileSplit>();
     FileSystem fs = FileSystem.get(conf);
 
     for (FileSplit fileSplit: splits) {
       Path file = fileSplit.getPath();
       LzoIndex index = indexes.get(file);
+      //index.logstate();
       if (index == null) {
         throw new IOException("Index not found for " + file);
       }
       if (index.isEmpty()) {
         // Empty index, keep it as is.
-        result.add(fileSplit);
+        long filelen = fs.getFileStatus(file).getLen();
+        result.add(new CompressedFileSplit(file, 0, filelen, fileSplit.getLocations(), 0, -1, false));
         continue;
       }
 
       long start = fileSplit.getStart();
       long end = start + fileSplit.getLength();
+      
+      //LOG.info("split " + fileSplit + ": " + start + " to " + end);
 
-      long lzoStart = index.alignSliceStartToIndex(start, end);
-      long lzoEnd = index.alignSliceEndToIndex(end, fs.getFileStatus(file).getLen());
+      int lzoBlockStart = index.alignSliceStartToBlock(start, end);
+      int lzoBlockEnd = index.alignSliceEndToBlock(end);
+      
+      //LOG.info("lzo map to " + lzoBlockStart + " to " + lzoBlockEnd);
 
-      if (lzoStart != LzoIndex.NOT_FOUND  && lzoEnd != LzoIndex.NOT_FOUND) {
-        result.add(new FileSplit(file, lzoStart, lzoEnd - lzoStart, fileSplit.getLocations()));
+      if (lzoBlockStart != (int) LzoIndex.NOT_FOUND) {
+        long lzoStart = index.getPosition(lzoBlockStart);
+        long lzoEnd = 0;
+        if (lzoBlockEnd == (int) LzoIndex.NOT_FOUND) {
+          lzoEnd = fs.getFileStatus(file).getLen();
+        } else {
+          lzoEnd = index.getPosition(lzoBlockEnd);
+        }
+  
+        long lzoUncOffset = index.getOffset(lzoBlockStart);
+        long lzoUncLength = 0;
+        for (int i = lzoBlockStart; i < lzoBlockEnd; i++) {
+          lzoUncLength += index.getLen(i);
+        }
+
+        boolean ignoreFirstLine = lzoBlockStart != 0;
+
+        result.add(new CompressedFileSplit(file, lzoStart, lzoEnd - lzoStart, fileSplit.getLocations(), lzoUncOffset, lzoUncLength, ignoreFirstLine));
+
+        //LOG.info("lzo split: " + lzoStart + " to " + lzoEnd + "; unc offset " + lzoUncOffset);
       }
     }
 
-    return result.toArray(new FileSplit[result.size()]);
+    return result.toArray((InputSplit[]) new CompressedFileSplit[result.size()]);
   }
 
   @Override
   public RecordReader<LongWritable, Text> getRecordReader(InputSplit split,
       JobConf conf, Reporter reporter) throws IOException {
     reporter.setStatus(split.toString());
-    return new DeprecatedLzoLineRecordReader(conf, (FileSplit)split);
+    return new DeprecatedLzoLineRecordReader(conf, (CompressedFileSplit)split);
   }
 
 }

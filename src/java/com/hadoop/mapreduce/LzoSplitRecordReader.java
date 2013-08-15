@@ -12,7 +12,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -20,12 +19,12 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.input.FileSplit;
 
-public class LzoSplitRecordReader extends RecordReader<Path, LongWritable> {
+public class LzoSplitRecordReader extends RecordReader<Path, TripleLongWritable> {
   private static final Log LOG = LogFactory.getLog(LzoSplitRecordReader.class);
 
   private final int LOG_EVERY_N_BLOCKS = 1000;
 
-  private final LongWritable curValue = new LongWritable(-1);
+  private final TripleLongWritable curValue = new TripleLongWritable();
   private FSDataInputStream rawInputStream;
   private TaskAttemptContext context;
 
@@ -34,6 +33,8 @@ public class LzoSplitRecordReader extends RecordReader<Path, LongWritable> {
   private int numCompressedChecksums = -1;
   private long totalFileSize = 0;
   private Path lzoFile;
+
+  private long uncompressedOffset = 0;
 
   @Override
   public void initialize(InputSplit genericSplit, TaskAttemptContext taskAttemptContext) throws IOException {
@@ -88,7 +89,11 @@ public class LzoSplitRecordReader extends RecordReader<Path, LongWritable> {
 
     // Get the current position.  Since we've read two ints, the current block started 8 bytes ago.
     long pos = rawInputStream.getPos();
-    curValue.set(pos - 8);
+
+    curValue.set(pos - 8, uncompressedOffset, uncompressedBlockSize);
+
+    uncompressedOffset += uncompressedBlockSize;
+
     // Seek beyond the checksums and beyond the block data to the beginning of the next block.
     rawInputStream.seek(pos + compressedBlockSize + (4 * numChecksumsToSkip));
     ++numBlocksRead;
@@ -108,7 +113,7 @@ public class LzoSplitRecordReader extends RecordReader<Path, LongWritable> {
   }
 
   @Override
-  public LongWritable getCurrentValue() {
+  public TripleLongWritable getCurrentValue() {
     return curValue;
   }
 

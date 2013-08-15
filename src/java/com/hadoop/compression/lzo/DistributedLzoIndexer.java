@@ -16,7 +16,7 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
-import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.hadoop.mapreduce.Job;
@@ -91,7 +91,7 @@ public class DistributedLzoIndexer extends Configured implements Tool {
     job.setJobName("Distributed Lzo Indexer " + Arrays.toString(args));
 
     job.setOutputKeyClass(Path.class);
-    job.setOutputValueClass(LongWritable.class);
+    job.setOutputValueClass(BytesWritable.class);
 
     // The LzoIndexOutputFormat doesn't currently work with speculative execution.
     // Patches welcome.

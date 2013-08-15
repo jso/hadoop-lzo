@@ -90,7 +90,7 @@ public class LzopCodec extends LzoCodec {
     if (!isNativeLzoLoaded(getConf())) {
       throw new RuntimeException("native-lzo library not available");
     }
-    return new LzopDecompressor(getConf().getInt(LZO_BUFFER_SIZE_KEY, DEFAULT_LZO_BUFFER_SIZE));
+    return new com.hadoop.compression.lzo.LzopDecompressor(getConf().getInt(LZO_BUFFER_SIZE_KEY, DEFAULT_LZO_BUFFER_SIZE));
   }
 
   @Override
