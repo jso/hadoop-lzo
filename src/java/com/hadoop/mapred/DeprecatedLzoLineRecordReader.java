@@ -72,7 +72,7 @@ public class DeprecatedLzoLineRecordReader implements RecordReader<LongWritable,
 
       // Read and ignore the first line.
       if (ignoreFirstLine) {
-        uncPos += in.readLine(new Text()); // JSO: count the bytes read in the uncompressed stream
+        uncPos += in.readLine(new Text()); // count the bytes read in the uncompressed stream
       }
 
       start = fileIn.getPos();
